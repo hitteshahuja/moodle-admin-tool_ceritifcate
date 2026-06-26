@@ -1,0 +1,129 @@
+DIVERGENCE FROM UPSTREAM — admin/tool/certificate
+===================================================
+
+Upstream reference: Moodle Workplace tool_certificate plugin
+Repository:         https://github.com/moodlehq/moodle-tool_certificate (or equivalent Moodle HQ source)
+Maintained fork:    https://github.com/hitteshahuja/moodle-admin-tool_ceritifcate
+
+This file documents every intentional departure from the upstream plugin.
+Any merge from upstream must be reconciled against these changes.
+
+
+1. NEW ELEMENT — element/incrementingnumber
+-------------------------------------------
+Type: Addition (new certificate element subplugin)
+Files added:
+  element/incrementingnumber/
+    classes/element.php
+    lang/en/certificateelement_incrementingnumber.php
+    tests/element_test.php
+    phpunit.xml
+    version.php
+
+Description:
+  A certificate element that prints an automatically incrementing sequential
+  number on each issued certificate.  The starting value is configurable per
+  element instance (default: 1).  The number is generated on first render and
+  stored in tool_certificate_issues.data as JSON key
+  "incrementingnumber_<element_id>".
+
+  Number-generation logic (element.php::render()):
+    next = max( (start-1) + activeCount + 1,  lastAssigned + 1,  start )
+  where activeCount excludes soft-deleted (revoked) rows — see change 2.
+
+
+2. SOFT-DELETE ON REVOKE (to prevent certificate number reuse)
+--------------------------------------------------------------
+Type: Behaviour change + schema addition
+Affected files:
+  db/install.xml
+  db/upgrade.php          (new step 2026042601)
+  version.php             (2026042600 → 2026042601)
+  classes/template.php    (revoke_issue, revoke_issues, issue_certificate)
+  element/incrementingnumber/classes/element.php (get_element_issue_count)
+  classes/reportbuilder/local/entities/issue.php (status column)
+  classes/reportbuilder/local/formatters/certificate.php (status formatter)
+  lang/en/tool_certificate.php ($string['revoked'])
+
+Problem fixed:
+  The upstream plugin hard-deletes the row from tool_certificate_issues when
+  a certificate is revoked.  When an incrementingnumber element calculates the
+  next number to assign it uses:
+    (a) COUNT of existing rows for that element   — decreases after hard-delete
+    (b) MAX number already assigned               — decreases after hard-delete
+  Both counters can fall below the number that was on the revoked certificate,
+  causing a newly issued certificate to receive a number that was already
+  printed on a previously revoked certificate.
+
+Changes made:
+
+  2a. New DB column: tool_certificate_issues.revoked (INT 1, DEFAULT 0)
+      Revoked issues are kept in the table with revoked=1.  This is the
+      source-of-truth that a number has been consumed and must not be reused.
+
+  2b. template.php::revoke_issue()
+      Changed from:  $DB->delete_records('tool_certificate_issues', ['id' => $issueid])
+      Changed to:    $DB->set_field('tool_certificate_issues', 'revoked', 1, ['id' => $issueid])
+      The PDF file and custom-field data are still deleted; only the bare row
+      (with its stored incrementing number) is kept.
+
+  2c. template.php::revoke_issues()   [template-deletion path]
+      Intentionally still performs a hard-delete.  When the whole template is
+      deleted the element definitions are also deleted, so there is no element
+      left that could ever assign a new number from that template.  Keeping
+      the rows would be dead weight.  This method now inlines the cleanup
+      logic directly rather than delegating to revoke_issue().
+
+  2d. template.php::issue_certificate()
+      Added explicit   $issue->revoked = 0;
+      on the new-issue object to satisfy Moodle's event-snapshot field
+      validator, which requires every column to be present in the snapshot.
+
+  2e. element.php::get_element_issue_count()
+      Added   AND revoked = 0
+      to the COUNT query so that soft-deleted rows are not counted as active
+      issues.  The companion method get_last_issued_number() is intentionally
+      left unchanged — it must see revoked rows so the max-number guard can
+      prevent reuse.
+
+  2f. Report builder — status column
+      Added ->add_field("{$alias}.revoked") to the status column definition
+      and updated the formatter callback to return get_string('revoked', ...)
+      when revoked = 1, taking precedence over the expired/valid check.
+
+  2g. Lang string
+      Added:  $string['revoked'] = 'Revoked';
+
+
+3. UNIT TESTS
+-------------
+Type: Addition / update
+Affected files:
+  element/incrementingnumber/tests/element_test.php
+  tests/template_test.php
+  tests/external_test.php
+
+New tests added (element_test.php):
+  test_revoke_does_not_reuse_number
+    — Revoking the most-recently-issued certificate must not allow its
+      assigned number to be issued again.
+  test_revoke_all_numbers_no_reuse
+    — After revoking every certificate for a template the next issue must
+      continue from lastAssigned+1, not restart from the start number.
+  test_revoke_middle_number_no_reuse
+    — Revoking a certificate in the middle of the sequence must leave a gap;
+      the gap must never be backfilled.
+
+Existing tests updated:
+  template_test.php::test_revoke_issue
+    — Updated assertions to expect the row to remain (revoked=1) rather than
+      to disappear from the table.
+  external_test.php::test_delete_issue
+    — Updated get_records() call to filter on revoked=0 when checking which
+      active issues remain after a revoke.
+  element_test.php::test_incrementing_numbers_with_deletion
+    — Changed from direct $DB->delete_records() to certificate->revoke_issue()
+      so the test exercises the real soft-delete path.
+  element_test.php::setUp()
+    — Added require_once($CFG->libdir.'/pdflib.php') so tests that use \pdf
+      work correctly when run in isolation via a PHPUnit filter.
