@@ -358,6 +358,30 @@ final class certificate_test extends advanced_testcase {
     }
 
     /**
+     * Test verify does not treat a revoked certificate as valid.
+     */
+    public function test_verify_revoked(): void {
+        $this->setAdminUser();
+        $certificate1 = $this->get_generator()->create_template((object)['name' => 'Certificate 1']);
+        $user1 = $this->getDataGenerator()->create_user();
+        $issueid1 = $certificate1->issue_certificate($user1->id);
+        global $DB;
+        $code1 = $DB->get_field('tool_certificate_issues', 'code', ['id' => $issueid1]);
+
+        $certificate1->revoke_issue($issueid1);
+
+        $sink = $this->redirectEvents();
+
+        $result = \tool_certificate\certificate::verify($code1);
+
+        $events = $sink->get_events();
+        $this->assertCount(0, $events);
+
+        $this->assertFalse($result->success);
+        $this->assertTrue($result->revoked);
+    }
+
+    /**
      * Test generate code.
      */
     public function test_generate_code(): void {

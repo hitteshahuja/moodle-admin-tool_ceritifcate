@@ -387,7 +387,7 @@ class certificate {
 
         $sql = "SELECT ci.id, ci.templateid, ci.code, ci.emailed, ci.timecreated,
                        ci.expires, ci.data, ci.component, ci.courseid,
-                       ci.userid, ci.archived,
+                       ci.userid, ci.archived, ci.revoked,
                        t.name as certificatename,
                        t.contextid
                   FROM {tool_certificate_templates} t
@@ -396,6 +396,10 @@ class certificate {
                  WHERE ci.code = :code";
 
         if ($issue = $DB->get_record_sql($sql, $conditions)) {
+            if (!empty($issue->revoked)) {
+                $result->revoked = true;
+                return $result;
+            }
             $result->success = true;
             $result->issue = $issue;
             \tool_certificate\event\certificate_verified::create_from_issue($issue)->trigger();
