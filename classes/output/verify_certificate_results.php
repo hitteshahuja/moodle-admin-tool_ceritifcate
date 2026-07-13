@@ -64,6 +64,8 @@ class verify_certificate_results implements templatable, renderable {
         if ($this->success) {
             $this->issue = $result->issue;
             $this->message = get_string('verified', 'tool_certificate');
+        } else if (!empty($result->revoked)) {
+            $this->message = get_string('certificaterevoked', 'tool_certificate');
         } else {
             $this->message = get_string('notverified', 'tool_certificate');
         }

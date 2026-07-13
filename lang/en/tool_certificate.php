@@ -47,6 +47,7 @@ $string['certificate_customfield'] = 'Certificate custom fields';
 $string['certificatecopy'] = '{$a} (copy)';
 $string['certificateelement'] = 'Certificate element';
 $string['certificateimages'] = 'Certificate images';
+$string['certificaterevoked'] = 'This certificate has been revoked and is no longer valid.';
 $string['certificates'] = 'Certificates';
 $string['certificatesettings'] = 'Certificates settings';
 $string['certificatesissues'] = 'Issued certificates';
