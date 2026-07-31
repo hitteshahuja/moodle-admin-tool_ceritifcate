@@ -127,3 +127,93 @@ Existing tests updated:
   element_test.php::setUp()
     — Added require_once($CFG->libdir.'/pdflib.php') so tests that use \pdf
       work correctly when run in isolation via a PHPUnit filter.
+
+
+4. PDF LOCKDOWN ON REVOKE
+-------------------------
+Type: Behaviour change (bug fix) + version bump. No schema change.
+Affected files:
+  classes/template.php                                  (create_issue_file, get_issue_file)
+  lib.php                                                (tool_certificate_pluginfile — 'issues' filearea)
+  view.php
+  classes/external/issues.php                            (regenerate_issue_file)
+  classes/reportbuilder/local/systemreports/issues.php    (View / Regenerate file row actions)
+  classes/certificate.php                                 (get_issues_for_user)
+  classes/my_certificates_table.php                       (col_download)
+  version.php                                             (2026071300 → 2026071301)
+  tests/template_test.php, tests/external_test.php, tests/my_certificates_table_test.php
+Also affected (separate repository, not yet a submodule of this checkout):
+  mod/coursecertificate/classes/output/mobile.php
+
+Problem fixed:
+  revoke_issue() already soft-deletes the issue row (revoked=1, per change 2)
+  and deletes the stored PDF, but nothing stopped the PDF being silently
+  regenerated afterwards. get_issue_file()/get_issue_file_url() recreate the
+  file on demand whenever it is missing, and that ran every time someone
+  opened view.php?code=..., the mobile app certificate view, or clicked the
+  "Regenerate file" action in the admin issues report — even for a revoked
+  issue. In practice, revoking a certificate never actually stopped it being
+  downloaded; only the issue row's revoked flag changed.
+
+Changes made:
+
+  4a. template.php::create_issue_file() / get_issue_file()
+      Both now throw moodle_exception('certificaterevoked', 'tool_certificate')
+      immediately if $issue->revoked is set, instead of generating/returning
+      a PDF. This is the single choke point every other call path goes
+      through, so it protects all callers, including third-party code
+      (mod_coursecertificate, local_mmt_utilities) that calls these methods
+      directly.
+
+  4b. lib.php::tool_certificate_pluginfile() — 'issues' filearea
+      Added `if ($issue->revoked) return false;` before the file lookup, as
+      defence-in-depth in case a stored file is ever left behind for a
+      revoked issue.
+
+  4c. view.php
+      Now checks $issue->revoked before calling get_issue_file_url() and
+      throws moodle_exception('certificaterevoked', ...) with a clear
+      message instead of redirecting to a (regenerated) PDF.
+
+  4d. classes/external/issues.php::regenerate_issue_file()
+      The "Regenerate file" web service now rejects revoked issues before
+      calling create_issue_file(), failing fast with a clear WS error
+      rather than relying on the exception from 4a.
+
+  4e. classes/reportbuilder/local/systemreports/issues.php
+      The "View" and "Regenerate file" row actions in the admin issues
+      report are now hidden for revoked rows (!$row->revoked), matching the
+      existing behaviour of the "Revoke" action. Added `revoked` to
+      $requiredcolumns so the callbacks have the data they need.
+
+  4f. classes/certificate.php::get_issues_for_user()
+      Added ci.revoked to the SELECT so the "My certificates" table can
+      distinguish revoked issues from active ones.
+
+  4g. classes/my_certificates_table.php::col_download()
+      Renders a "Revoked" badge instead of the download/view icon when the
+      issue is revoked. The row itself is NOT removed from the list — the
+      issue entry, code and dates stay visible; only the PDF link is gone.
+
+  4h. mod_coursecertificate/classes/output/mobile.php (separate repository)
+      The mobile app "studentview" no longer requests a file URL for a
+      revoked issue (empty($issue->revoked) added to the condition),
+      avoiding an uncaught exception from 4a on that code path.
+
+  4i. version.php
+      2026071300 → 2026071301. No new DB field or upgrade step — this is a
+      pure behaviour/version bump so admins and hosting providers can see
+      the plugin changed and Moodle purges caches on upgrade.
+
+  4j. Tests
+      New:
+        tests/template_test.php::test_get_issue_file_revoked
+        tests/template_test.php::test_create_issue_file_revoked
+        tests/external_test.php::test_regenerate_issue_file_revoked
+        tests/my_certificates_table_test.php::test_col_download
+      Confirmed still passing: the rest of template_test.php, external_test.php,
+      my_certificates_table_test.php, certificate_test.php, and
+      mod_coursecertificate/tests/helper_test.php.
+
+  See DEPLOYMENT_AND_TEST_PLAN.md for the hosting-provider deployment and
+  QA checklist for this change.

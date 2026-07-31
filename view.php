@@ -43,11 +43,15 @@ if ($preview) {
     $context = \context_course::instance($issue->courseid, IGNORE_MISSING) ?: null;
 
     $template = $issue ? \tool_certificate\template::instance($issue->templateid) : null;
-    if ($template && (\tool_certificate\permission::can_verify() ||
+    if (!$template || !(\tool_certificate\permission::can_verify() ||
             \tool_certificate\permission::can_view_issue($template, $issue, $context))) {
-        $url = $template->get_issue_file_url($issue);
-        redirect($url);
-    } else {
         throw new moodle_exception('notfound');
     }
+
+    if (!empty($issue->revoked)) {
+        throw new moodle_exception('certificaterevoked', 'tool_certificate');
+    }
+
+    $url = $template->get_issue_file_url($issue);
+    redirect($url);
 }

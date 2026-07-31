@@ -183,6 +183,10 @@ class my_certificates_table extends \table_sql {
     public function col_download($issue) {
         global $OUTPUT;
 
+        if (!empty($issue->revoked)) {
+            return \html_writer::tag('span', get_string('revoked', 'tool_certificate'), ['class' => 'badge badge-secondary']);
+        }
+
         $icon = new \pix_icon('download', get_string('view'), 'tool_certificate');
         $link = template::view_url($issue->code);
 

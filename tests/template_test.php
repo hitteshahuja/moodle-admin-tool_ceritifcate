@@ -493,6 +493,53 @@ final class template_test extends advanced_testcase {
     }
 
     /**
+     * Test that a revoked issue never gets its PDF regenerated or served.
+     */
+    public function test_get_issue_file_revoked(): void {
+        // Create the certificate.
+        $certificate = $this->get_generator()->create_template((object)['name' => 'Certificate 1']);
+
+        // Issue certificate.
+        $user = $this->getDataGenerator()->create_user();
+        $issue = $this->get_generator()->issue($certificate, $user);
+
+        // Revoking deletes the stored PDF.
+        $certificate->revoke_issue($issue->id);
+
+        $fs = get_file_storage();
+        $this->assertFalse($fs->file_exists(\context_system::instance()->id, 'tool_certificate', 'issues',
+            $issue->id, '/', $issue->code . '.pdf'));
+
+        global $DB;
+        $revokedissue = $DB->get_record('tool_certificate_issues', ['id' => $issue->id], '*', MUST_EXIST);
+        $this->assertEquals(1, $revokedissue->revoked);
+
+        // Neither get_issue_file() nor create_issue_file() must regenerate a PDF for a revoked issue.
+        $this->expectException(\moodle_exception::class);
+        $certificate->get_issue_file($revokedissue);
+    }
+
+    /**
+     * Test that create_issue_file() refuses to (re)generate a PDF for a revoked issue.
+     */
+    public function test_create_issue_file_revoked(): void {
+        // Create the certificate.
+        $certificate = $this->get_generator()->create_template((object)['name' => 'Certificate 1']);
+
+        // Issue certificate.
+        $user = $this->getDataGenerator()->create_user();
+        $issue = $this->get_generator()->issue($certificate, $user);
+
+        $certificate->revoke_issue($issue->id);
+
+        global $DB;
+        $revokedissue = $DB->get_record('tool_certificate_issues', ['id' => $issue->id], '*', MUST_EXIST);
+
+        $this->expectException(\moodle_exception::class);
+        $certificate->create_issue_file($revokedissue, true);
+    }
+
+    /**
      * Test get_visible_categories_contexts_sql
      */
     public function test_get_visible_categories_contexts_sql(): void {
