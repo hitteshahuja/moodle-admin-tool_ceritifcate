@@ -35,8 +35,7 @@ const SELECTORS = {
     REGENERATEFILE: "[data-action='regenerate']",
     REVOKEISSUE: "[data-action='revoke']",
     GROUPFORM: ".groupselector form",
-    GROUPSELECTOR: "select[name='group']",
-    EXPIREISSUE:"[data-action='expire']",
+    GROUPSELECTOR: "select[name='group']"
 };
 
 /**
@@ -64,35 +63,6 @@ const addIssue = function(element) {
         }
     });
     modal.show();
-};
-/**
- * Revoke issue
- * @param {Element} element
- */
-const expireIssue = function(element) {
-    let pendingPromise;
-    const triggerElement = element.closest('.dropdown').querySelector('.dropdown-toggle');
-    getStrings([
-        {key: 'confirm', component: 'moodle'},
-        {key: 'expirecertificateconfirm', component: 'tool_certificate'},
-        {key: 'expire', component: 'tool_certificate'},
-    ]).then(([title, question, saveLabel]) => {
-        return Notification.saveCancelPromise(title, question, saveLabel, {triggerElement});
-    }).then(() => {
-        pendingPromise = new Pending('tool_certificate/expireIssue');
-        return Ajax.call([
-            {methodname: 'tool_certificate_expire_issue', args: {id: element.dataset.id}}
-        ])[0];
-    }).then(() => {
-        reloadReport();
-        return pendingPromise.resolve();
-    }).catch((e) => {
-        if (e.type === 'modal-save-cancel:cancel') {
-            // Clicked cancel.
-            return;
-        }
-        Notification.exception(e);
-    });
 };
 /**
  * Revoke issue
@@ -191,12 +161,6 @@ export function init() {
         if (revokeIssueElement) {
             event.preventDefault();
             revokeIssue(revokeIssueElement);
-        }
-        // Expire issue.
-        const expireIssueElement = event.target.closest(SELECTORS.EXPIREISSUE);
-        if (expireIssueElement) {
-            event.preventDefault();
-            expireIssue(expireIssueElement);
         }
 
         // Regenerate file.

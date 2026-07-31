@@ -85,53 +85,6 @@ class issues extends \external_api {
     }
 
     /**
-     * Returns the expire_issue() parameters.
-     *
-     * @return \external_function_parameters
-     */
-    public static function expire_issue_parameters(): \external_function_parameters {
-        return new \external_function_parameters(
-            [
-                'id' => new \external_value(PARAM_INT, 'The issue id'),
-            ]
-        );
-    }
-
-    /**
-     * Expires a certificate issue by setting the expires timestamp to now.
-     *
-     * @param int $issueid The issue id.
-     */
-    public static function expire_issue(int $issueid): void {
-        global $DB;
-
-        $params = self::validate_parameters(self::expire_issue_parameters(), ['id' => $issueid]);
-
-        $issue = $DB->get_record('tool_certificate_issues', ['id' => $params['id']], '*', MUST_EXIST);
-        $template = \tool_certificate\template::instance($issue->templateid);
-
-        // Make sure the user has the required capabilities.
-        $context = \context_course::instance($issue->courseid, IGNORE_MISSING) ?: $template->get_context();
-        self::validate_context($context);
-
-        if (!$template->can_revoke($issue->userid, $context)) {
-            throw new \required_capability_exception($template->get_context(), 'tool/certificate:issue', 'nopermissions', 'error');
-        }
-
-        // Set expires to now.
-        $DB->set_field('tool_certificate_issues', 'expires', time(), ['id' => $params['id']]);
-    }
-
-    /**
-     * Returns the expire_issue result value.
-     *
-     * @return null
-     */
-    public static function expire_issue_returns(): null {
-        return null;
-    }
-
-    /**
      * Returns the regenerate_issue_file() parameters.
      *
      * @return \external_function_parameters

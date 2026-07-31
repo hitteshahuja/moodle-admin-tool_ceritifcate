@@ -240,21 +240,6 @@ class issues extends system_report {
         ))->add_callback(function(stdClass $row): bool {
             return !$row->revoked && $this->get_template()->can_issue($this->userid, $this->get_context());
         }));
-        // Add expire action. Only show this button if the certificate issue status is Active.
-        $this->add_action((new action(
-            new moodle_url('#'),
-            new pix_icon('i/trash', ''),
-            [
-                'data-action' => 'expire',
-                'data-id' => ':id',
-            ],
-            false,
-            new lang_string('expire', 'tool_certificate')
-        ))->add_callback(function(stdClass $row): bool {
-            // Active means expires is 0 (never expires) or expires is in the future.
-            $isactive = !$row->expires || $row->expires > time();
-            return $isactive && $this->get_template()->can_issue($this->userid, $this->get_context());
-        }));
     }
 
     /**

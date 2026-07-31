@@ -69,13 +69,6 @@ $functions = [
         'type'        => 'write',
         'ajax'        => true,
     ],
-    'tool_certificate_expire_issue' => [
-        'classname'   => \tool_certificate\external\issues::class,
-        'methodname'  => 'expire_issue',
-        'description' => 'Expires an issued certificate by setting the expiry timestamp to now',
-        'type'        => 'write',
-        'ajax'        => true,
-    ],
     'tool_certificate_potential_users_selector' => [
         'classname' => \tool_certificate\external\issues::class,
         'methodname' => 'potential_users_selector',
