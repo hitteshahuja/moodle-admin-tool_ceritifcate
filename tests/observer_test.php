@@ -109,7 +109,7 @@ final class observer_test extends advanced_testcase {
 
         $message = reset($messages);
         $this->assertEquals($user->id, $message->useridto);
-        $this->assertEquals(get_string('notificationsubjectcertificateregenerated', 'tool_certificate'), $message->subject);
+        $this->assertEquals(get_string('notificationsubjectcertificateregenerated', 'local_mmt_utilities'), $message->subject);
         $this->assertEquals('certificateissued', $message->eventtype); // Even though it's regenerated, we utilize the standard message event channel.
         $this->assertStringContainsString('Your certificate has been regenerated', $message->fullmessage);
 

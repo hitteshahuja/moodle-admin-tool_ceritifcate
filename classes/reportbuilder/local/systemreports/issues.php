@@ -84,7 +84,7 @@ class issues extends system_report {
         $this->add_join("JOIN {user} {$useralias} ON {$useralias}.id = {$entitymainalias}.userid");
 
         // Any columns required by actions should be defined here to ensure they're always available.
-        $requiredcolumns = ['code', 'id', 'userid', 'templateid', 'expires'];
+        $requiredcolumns = ['code', 'id', 'userid', 'templateid', 'expires', 'revoked'];
         $this->add_base_fields("{$entitymainalias}." . implode(", {$entitymainalias}.", $requiredcolumns));
 
         // Add callback for tenant feature.
@@ -207,7 +207,10 @@ class issues extends system_report {
             ],
             false,
             new lang_string('view')
-        )));
+        ))->add_callback(function(stdClass $row): bool {
+            // Revoked issues have no PDF to view.
+            return !$row->revoked;
+        }));
 
         // Regenerate file.
         $this->add_action((new action(
@@ -219,23 +222,24 @@ class issues extends system_report {
             ],
             false,
             new lang_string('regenerateissuefile', 'tool_certificate')
-        ))->add_callback(function() {
-            return $this->get_template()->can_issue($this->userid, $this->get_context());
+        ))->add_callback(function(stdClass $row): bool {
+            // Revoked issues must never have their PDF regenerated.
+            return !$row->revoked && $this->get_template()->can_issue($this->userid, $this->get_context());
         }));
 
         // Revoke.
-/*         $this->add_action((new action(
+        $this->add_action((new action(
             new moodle_url('#'),
-            new pix_icon('i/trash', ''),
+            new pix_icon('i/invalid', ''),
             [
                 'data-action' => 'revoke',
                 'data-id' => ':id',
             ],
             false,
             new lang_string('revoke', 'tool_certificate')
-        ))->add_callback(function() {
-            return $this->get_template()->can_issue($this->userid, $this->get_context());
-        })); */
+        ))->add_callback(function(stdClass $row): bool {
+            return !$row->revoked && $this->get_template()->can_issue($this->userid, $this->get_context());
+        }));
         // Add expire action. Only show this button if the certificate issue status is Active.
         $this->add_action((new action(
             new moodle_url('#'),

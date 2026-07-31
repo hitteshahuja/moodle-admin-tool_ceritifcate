@@ -164,6 +164,10 @@ class issues extends \external_api {
             throw new \required_capability_exception($template->get_context(), 'tool/certificate:issue', 'nopermissions', 'error');
         }
 
+        if (!empty($issue->revoked)) {
+            throw new \moodle_exception('certificaterevoked', 'tool_certificate');
+        }
+
         // Regenerate the issue file.
         $template->create_issue_file($issue, true);
 

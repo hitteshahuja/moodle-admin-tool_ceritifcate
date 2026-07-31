@@ -64,6 +64,34 @@ final class my_certificates_table_test extends \advanced_testcase {
     }
 
     /**
+     * Test Download column hides the file link for revoked issues, keeping only a status badge.
+     */
+    public function test_col_download(): void {
+        /** @var tool_certificate_generator $certificategenerator */
+        $certificategenerator = $this->getDataGenerator()->get_plugin_generator('tool_certificate');
+        $user = self::getDataGenerator()->create_user();
+
+        $template = $certificategenerator->create_template((object)['name' => 'Certificate 1']);
+        $issue = $certificategenerator->issue($template, $user);
+
+        $table = new my_certificates_table($user->id);
+
+        // Active issue: a download link is rendered.
+        $active = $table->col_download($issue);
+        $this->assertStringContainsString('<a ', $active);
+        $this->assertStringContainsString(\tool_certificate\template::view_url($issue->code)->out(false), $active);
+
+        // Revoked issue: no link to the (non-existent) PDF, just a status badge.
+        $template->revoke_issue($issue->id);
+        global $DB;
+        $revokedissue = $DB->get_record('tool_certificate_issues', ['id' => $issue->id], '*', MUST_EXIST);
+
+        $revoked = $table->col_download($revokedissue);
+        $this->assertStringNotContainsString('<a ', $revoked);
+        $this->assertStringContainsString(get_string('revoked', 'tool_certificate'), $revoked);
+    }
+
+    /**
      * Test LinkedIn column
      *
      * @dataProvider col_linkedin_provider

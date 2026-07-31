@@ -85,6 +85,11 @@ function tool_certificate_pluginfile($course, $cm, $context, $filearea, $args, $
         $code = pathinfo($filename, PATHINFO_FILENAME);
 
         $issue = $DB->get_record('tool_certificate_issues', ['code' => $code], '*', MUST_EXIST);
+        if (!empty($issue->revoked)) {
+            // Revoked certificates have no downloadable PDF.
+            return false;
+        }
+
         $template = \tool_certificate\template::instance($issue->templateid);
         if (!permission::can_view_issue($template, $issue) && !permission::can_verify()) {
             return false;

@@ -747,6 +747,11 @@ class template {
      * @return \stored_file
      */
     public function create_issue_file(\stdClass $issue, bool $regenerate = false): \stored_file {
+        if (!empty($issue->revoked)) {
+            // Revoked certificates must never have a PDF generated or kept around for download.
+            throw new \moodle_exception('certificaterevoked', 'tool_certificate');
+        }
+
         // Generate issue pdf contents.
         $filecontents = $this->generate_pdf(false, $issue, true);
         // Create a file instance.
@@ -779,6 +784,11 @@ class template {
      * @return \stored_file
      */
     public function get_issue_file(\stdClass $issue): \stored_file {
+        if (!empty($issue->revoked)) {
+            // Never serve or regenerate a PDF for a revoked issue, even if one is somehow still stored.
+            throw new \moodle_exception('certificaterevoked', 'tool_certificate');
+        }
+
         $fs = get_file_storage();
         $file = $fs->get_file(
             \context_system::instance()->id,

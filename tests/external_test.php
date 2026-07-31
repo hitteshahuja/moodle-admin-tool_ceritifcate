@@ -206,4 +206,23 @@ final class external_test extends advanced_testcase {
         $userfullname = @json_decode($issue->data, true)['userfullname'];
         $this->assertEquals('User 02', $userfullname);
     }
+
+    /**
+     * Test that regenerate_issue_file refuses to bring back a PDF for a revoked issue.
+     */
+    public function test_regenerate_issue_file_revoked(): void {
+        $this->setAdminUser();
+
+        // Create the certificate.
+        $certificate = $this->certgenerator->create_template((object)['name' => 'Certificate 1']);
+
+        // Issue certificate.
+        $user = $this->getDataGenerator()->create_user();
+        $issue = $this->certgenerator->issue($certificate, $user);
+
+        \tool_certificate\external\issues::revoke_issue($issue->id);
+
+        $this->expectException(\moodle_exception::class);
+        \tool_certificate\external\issues::regenerate_issue_file($issue->id);
+    }
 }
