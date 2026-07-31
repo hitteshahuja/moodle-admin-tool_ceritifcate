@@ -2,7 +2,7 @@
 
 **Plugin:** `tool_certificate` (Certificate manager), plus one file in `mod_coursecertificate` (Course certificate activity)
 **Change:** Revoked certificates are no longer downloadable
-**Plugin version:** `2026071300` → `2026071301` (`admin/tool/certificate/version.php`)
+**Plugin version:** `2026071300` → `2026071302` (`admin/tool/certificate/version.php`)
 **Database change:** None — no new tables, fields, or upgrade step
 **New settings / capabilities:** None
 **Related docs:** See `changes.txt` in this folder, section 4, for the full technical diff-by-diff description.
@@ -27,6 +27,8 @@ This meant a revoked certificate's PDF could keep circulating even after revocat
 - The learner's "My certificates" page shows a "Revoked" badge in place of the download icon for that row.
 
 No visible or invisible data is deleted by this change beyond what revoking already deleted (the stored PDF file). No user-facing settings changed. No new capabilities were introduced, so no permissions/roles need to be reviewed.
+
+**Also bundled into this same deploy:** an unrelated, unused "Expire" row action (and its web service `tool_certificate_expire_issue`) has been removed from the admin issues report. It was custom code, never part of upstream, and had no callers relying on it — it simply no longer appears in the row actions.
 
 ---
 
@@ -64,7 +66,7 @@ This is a standard code-only plugin update — no data migration, no manual DB s
    ```
    php admin/cli/upgrade.php --non-interactive
    ```
-   You should see `tool_certificate` version change from `2026071300` to `2026071301`. There is **no new database table or field** — the upgrade step exists purely to bump the version and purge caches.
+   You should see `tool_certificate` version change from `2026071300` to `2026071302`. There is **no new database table or field** — the upgrade step exists purely to bump the version and purge caches.
 5. Purge all caches (the upgrade step above does this, but if deploying without running upgrade.php for any reason, run explicitly):
    ```
    php admin/cli/purge_caches.php
@@ -105,7 +107,7 @@ If all 6 steps behave as described, the deployment is working as intended. Conti
 | 1 | As a manager, issue a certificate to a test user. Open the certificate's direct view link (the code link, e.g. `/admin/tool/certificate/view.php?code=XXXX`). | PDF opens/downloads normally. |
 | 2 | Revoke that certificate from the issues report. | Row status changes to "Revoked". No error. |
 | 3 | Re-open the **same** direct view link from step 1 (reuse the bookmarked/saved URL). | A clear "This certificate has been revoked and is no longer valid" message is shown. **No PDF is downloaded or regenerated.** |
-| 4 | As admin, in the issues report, confirm the "View" and "Regenerate file" icons no longer appear on the revoked row (only whatever action remains, e.g. "Expire", if applicable). | Icons are hidden — there is nothing to click that could bring the PDF back. |
+| 4 | As admin, in the issues report, confirm the "View" and "Regenerate file" icons no longer appear on the revoked row. | Icons are hidden — there is nothing to click that could bring the PDF back. |
 | 5 | As the certificate holder, go to "My certificates". Confirm the row for this certificate is still listed (issue not deleted) with a "Revoked" badge and no download link. | Entry remains visible; no working download link. |
 | 6 | If using **mod_coursecertificate** (course certificate activity) with the Moodle mobile app: open the course certificate activity in the app for a user whose certificate has been revoked. | No download/file link is shown for the revoked certificate in the mobile view. |
 
@@ -153,7 +155,8 @@ All should report `OK` with no failures.
 ## 6. Sign-off checklist
 
 - [ ] Code deployed for `admin/tool/certificate` and `mod/coursecertificate`
-- [ ] `admin/cli/upgrade.php --non-interactive` run, plugin version shows `2026071301`
+- [ ] `admin/cli/upgrade.php --non-interactive` run, plugin version shows `2026071302`
+- [ ] Admin issues report no longer shows an "Expire" row action anywhere (feature removed)
 - [ ] Caches purged
 - [ ] Smoke test (section 4) passed
 - [ ] Full QA checklist (section 5.1–5.3) passed
