@@ -40,7 +40,6 @@ use core_privacy\local\request\writer;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class privacy_provider_test extends \core_privacy\tests\provider_testcase {
-
     /** @var tool_certificate_generator */
     protected $certgenerator;
 
@@ -142,8 +141,13 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
 
         // Define courseid issue customfield.
         $handler = \tool_certificate\customfield\issue_handler::create();
-        $handler->ensure_field_exists('courseid', 'numeric',
-            'Course id', false, 1);
+        $handler->ensure_field_exists(
+            'courseid',
+            'numeric',
+            'Course id',
+            false,
+            1
+        );
 
         // Create users who will be issued a certificate.
         $user1 = $this->getDataGenerator()->create_user();
@@ -264,7 +268,11 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
 
         // Delete data on user context will do nothing.
         $context = \context_system::instance();
-        $contextlist = new \core_privacy\local\request\approved_contextlist($user1, 'tool_certificate', [$usercontext1->id]);
+        $contextlist = new \core_privacy\local\request\approved_contextlist(
+            $user1,
+            'tool_certificate',
+            [$usercontext1->id]
+        );
         provider::delete_data_for_user($contextlist);
 
         $count = $DB->count_records('tool_certificate_issues', ['templateid' => $template->get_id()]);
@@ -275,11 +283,17 @@ final class privacy_provider_test extends \core_privacy\tests\provider_testcase 
         provider::delete_data_for_user($contextlist);
 
         // After deletion, the issued certificates for the first user should have been deleted.
-        $count = $DB->count_records('tool_certificate_issues', ['templateid' => $template->get_id(), 'userid' => $user1->id]);
+        $count = $DB->count_records(
+            'tool_certificate_issues',
+            ['templateid' => $template->get_id(), 'userid' => $user1->id]
+        );
         $this->assertEquals(0, $count);
 
         // Check the issue for the other user is still there.
-        $count = $DB->count_records('tool_certificate_issues', ['templateid' => $template->get_id(), 'userid' => $user2->id]);
+        $count = $DB->count_records(
+            'tool_certificate_issues',
+            ['templateid' => $template->get_id(), 'userid' => $user2->id]
+        );
         $this->assertEquals(1, $count);
     }
 

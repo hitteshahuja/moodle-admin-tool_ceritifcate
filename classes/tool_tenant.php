@@ -34,9 +34,9 @@ namespace tool_certificate;
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tool_tenant {
-
     /**
-     * Callback used by tool_tenant to see which capabilities from this plugin are allowed for the "Tenant administrator" role
+     * Callback used by tool_tenant to see which capabilities from this plugin are allowed for the
+     * "Tenant administrator" role
      *
      * @return array
      */
@@ -46,5 +46,4 @@ class tool_tenant {
             'tool/certificate:viewallcertificates' => CAP_ALLOW,
         ];
     }
-
 }

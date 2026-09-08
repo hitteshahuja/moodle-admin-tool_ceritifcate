@@ -32,7 +32,6 @@ use context_system;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class capabilities_test extends advanced_testcase {
-
     /** @var tool_certificate_generator */
     protected $certgenerator;
 
@@ -53,8 +52,12 @@ final class capabilities_test extends advanced_testcase {
         $cat1 = self::getDataGenerator()->create_category();
         $cat2 = self::getDataGenerator()->create_category();
 
-        $certificate1 = $this->certgenerator->create_template((object)['name' => 'Certificate 1', 'categoryid' => $cat1->id]);
-        $certificate2 = $this->certgenerator->create_template((object)['name' => 'Certificate 2', 'categoryid' => $cat2->id]);
+        $certificate1 = $this->certgenerator->create_template(
+            (object)['name' => 'Certificate 1', 'categoryid' => $cat1->id]
+        );
+        $certificate2 = $this->certgenerator->create_template(
+            (object)['name' => 'Certificate 2', 'categoryid' => $cat2->id]
+        );
         $certificate3 = $this->certgenerator->create_template((object)['name' => 'Certificate 3']);
 
         $managerrole = $DB->get_record('role', ['shortname' => 'manager']);
@@ -133,8 +136,12 @@ final class capabilities_test extends advanced_testcase {
 
         $this->setUser($manager1);
 
-        $certificate1 = $this->certgenerator->create_template((object)['name' => 'Certificate 1', 'categoryid' => $cat1->id]);
-        $certificate2 = $this->certgenerator->create_template((object)['name' => 'Certificate 2', 'categoryid' => $cat2->id]);
+        $certificate1 = $this->certgenerator->create_template(
+            (object)['name' => 'Certificate 1', 'categoryid' => $cat1->id]
+        );
+        $certificate2 = $this->certgenerator->create_template(
+            (object)['name' => 'Certificate 2', 'categoryid' => $cat2->id]
+        );
         $certificate3 = $this->certgenerator->create_template((object)['name' => 'Certificate 3']);
 
         // Managers can issue templates by default on same tenant and on shared templates, but not for other tenants.

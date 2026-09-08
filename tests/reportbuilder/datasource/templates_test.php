@@ -38,7 +38,6 @@ require_once("{$CFG->dirroot}/reportbuilder/tests/helpers.php");
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class templates_test extends core_reportbuilder_testcase {
-
     /** @var core_reportbuilder_generator */
     protected $rbgenerator;
     /** @var \tool_certificate_generator */
@@ -77,9 +76,13 @@ final class templates_test extends core_reportbuilder_testcase {
         // Add template name column to the report.
         $this->rbgenerator->create_column(['reportid' => $report->get('id'), 'uniqueidentifier' => 'template:name']);
         // Add course category name column to the report.
-        $this->rbgenerator->create_column(['reportid' => $report->get('id'), 'uniqueidentifier' => 'course_category:name']);
+        $this->rbgenerator->create_column(
+            ['reportid' => $report->get('id'), 'uniqueidentifier' => 'course_category:name']
+        );
         // Add template numberofpages column to the report.
-        $this->rbgenerator->create_column(['reportid' => $report->get('id'), 'uniqueidentifier' => 'template:numberofpages']);
+        $this->rbgenerator->create_column(
+            ['reportid' => $report->get('id'), 'uniqueidentifier' => 'template:numberofpages']
+        );
 
         $content = $this->get_custom_report_content($report->get('id'));
         $this->assertCount(2, $content);
@@ -90,7 +93,6 @@ final class templates_test extends core_reportbuilder_testcase {
             [$cert2['name'], '', 0],
         ];
         $this->assertEqualsCanonicalizing($contentcerts, $content);
-
     }
 
     /**
